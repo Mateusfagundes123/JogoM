@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Jogo da Memória - Animais</title>
+  <link rel="stylesheet" href="../CSS/stylejogo.css">
+   <head>
+      <link rel="icon" type="image/png" href="../IMG/jogo-infantil.png">
+    </head>
+</head>
+
+<body>
+  <header class="barra">
+    <div class="voltarbarra">
+      <a href="../index.html">
+        <img src="../IMG/seta-esquerda.png">
+      </a>
+    </div>
+    <div class="hamburguerbarra">
+      <p>Selecione a categoria</p>
+      <a href="#" id="btn-menu">
+        <img src="../IMG/hamburger.png" alt="Menu">
+      </a>
+    </div>
+  </header>
+
+  <nav id="menu" class="menu-mobile">
+    <button id="fechar-menu">✖</button>
+    <ul>
+      <li><a href="jogoSelvagem.html"><button class="categoriaJogo">Animais Selvagens</button></a></li>
+      <li><a href="jogoFazenda.html"><button class="categoriaJogo">Animais da Fazenda</button></a></li>
+      <li><a href="jogoDomesticos.html"><button class="categoriaJogo">Animais Domésticos</button></a></li>
+      <li><a href="JogoTransporte.html"><button class="categoriaJogo">Meios de Transporte</button></a></li>
+    </ul>
+  </nav>
+
+
+  <div class="totaljogo">
+  <div class="dificuldadejogo">
+     <button class="toggle-btn" onclick="toggleDificuldades()">Dificuldade</button>
+  <div class="difficulty">
+   
+    <div class="opcoes-dificuldade">
+      <button onclick="setDifficulty(4, event)">Fácil</button><br>
+      <button onclick="setDifficulty(6, event)" class="active">Médio</button><br>
+      <button onclick="setDifficulty(8, event)">Difícil</button><br><br>
+
+      <label>
+        <input type="checkbox" id="toggle-tempo" checked>
+        Ativar tempo limite
+      </label>
+    </div>
+  </div>
+</div>
+
+
+    <div class="jogojogo">
+      <div id="game-board"></div>
+    </div>
+
+    <div class="temporizador">
+      <div id="timer-container">
+        <div id="ratinho">🐭</div>
+        <span id="tempo-restante">60s</span>
+        <div id="macas">
+          <span class="maca">🍎</span>
+          <span class="maca">🍎</span>
+          <span class="maca">🍎</span>
+          <span class="maca">🍎</span>
+          <span class="maca">🍎</span>
+          <span class="maca">🍎</span>
+        </div>
+      </div>
+    </div>
+
+    <div id="summary">
+      <div class="stars">⭐ ⭐ ⭐</div>
+      <h2>Parabéns! Você venceu!</h2>
+      <div class="summary-buttons">
+        <button onclick="setDifficulty(currentPairs)">Jogar novamente</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function toggleDificuldades() {
+        const opcoes = document.querySelector(".opcoes-dificuldade");
+        opcoes.classList.toggle("show");
+      }
+
+    let startTime;
+    let firstCard = null;
+    let secondCard = null;
+    let lock = false;
+    let currentPairs = 6;
+    let tempoTotal = 60;
+    let timerInterval;
+    let tempoLimiteAtivado = true;
+
+    const board = document.getElementById("game-board");
+    const summary = document.getElementById("summary");
+    const difficultyButtons = document.querySelectorAll(".difficulty button");
+    const toggleTempoCheckbox = document.getElementById("toggle-tempo");
+
+    toggleTempoCheckbox.addEventListener('change', function () {
+      tempoLimiteAtivado = this.checked;
+    });
+
+    const allImages = [
+      "../IMG/Animais Domésticos/Cachorro.jpg",
+      "../IMG/Animais Domésticos/Calopsita.jpg",
+      "../IMG/Animais Domésticos/Chinchila.jpg",
+      "../IMG/Animais Domésticos/Fuinha.jpg",
+      "../IMG/Animais Domésticos/Gato.jpg",
+      "../IMG/Animais Domésticos/Hamster.jpg",
+      "../IMG/Animais Domésticos/Iguana.jpg",
+      "../IMG/Animais Domésticos/Peixe.jpg",
+    ];
+
+    const audioMap = {
+      "Cachorro.jpg": new Audio("../SOM/domesticoSom/cachorro.mp3"),
+      "Calopsita.jpg": new Audio("../SOM/domesticoSom/calopsita.mp3"),
+      "Chinchila.jpg": new Audio("../SOM/domesticoSom/chinchila.mp3"),
+      "Fuinha.jpg": new Audio("../SOM/domesticoSom/fuinha.mp3"),
+      "Gato.jpg": new Audio("../SOM/domesticoSom/gato.mp3"),
+      "Hamster.jpg": new Audio("../SOM/domesticoSom/hamster.mp3"),
+      "Iguana.jpg": new Audio("../SOM/domesticoSom/iguana.mp3"),
+      "Peixe.jpg": new Audio("../SOM/domesticoSom/peixe.mp3")
+    };
+
+    document.getElementById("btn-menu").addEventListener("click", function (event) {
+      event.preventDefault();
+      document.getElementById("menu").classList.toggle("show");
+    });
+
+    document.getElementById("fechar-menu").addEventListener("click", () => {
+      document.getElementById("menu").classList.remove("show");
+    });
+
+    function setDifficulty(pairs, event) {
+      currentPairs = pairs;
+
+      if (pairs === 4) tempoTotal = 30;
+      else if (pairs === 6) tempoTotal = 60;
+      else if (pairs === 8) tempoTotal = 90;
+
+      difficultyButtons.forEach(btn => btn.classList.remove("active"));
+      if (event) event.target.classList.add("active");
+
+      startGame();
+    }
+
+    function shuffle(array) {
+      return array.sort(() => Math.random() - 0.5);
+    }
+
+    function createCard(imageUrl) {
+      const card = document.createElement("div");
+      card.classList.add("card");
+
+      const front = document.createElement("div");
+      front.classList.add("front");
+
+      const back = document.createElement("div");
+      back.classList.add("back");
+      back.style.backgroundImage = `url('${imageUrl}')`;
+
+      card.appendChild(front);
+      card.appendChild(back);
+
+      card.addEventListener("click", () => {
+        if (lock || card.classList.contains("flip") || secondCard) return;
+        card.classList.add("flip");
+
+        if (!firstCard) {
+          firstCard = card;
+        } else {
+          secondCard = card;
+          checkMatch();
+        }
+      });
+
+      return card;
+    }
+
+    function checkMatch() {
+      lock = true;
+      const img1 = firstCard.querySelector(".back").style.backgroundImage;
+      const img2 = secondCard.querySelector(".back").style.backgroundImage;
+
+      if (img1 === img2) {
+        const matchFileName = img1.match(/\/([^\/]+\.jpg|\.jpeg)/i)[1];
+        const audio = audioMap[matchFileName];
+
+        if (audio) {
+          try {
+            audio.currentTime = 0;
+            audio.play();
+          } catch (e) {
+            console.warn("Erro ao reproduzir áudio:", e);
+          }
+        }
+
+        setTimeout(() => {
+          firstCard = null;
+          secondCard = null;
+          lock = false;
+          checkWin();
+        }, 500);
+      } else {
+        setTimeout(() => {
+          firstCard.classList.remove("flip");
+          secondCard.classList.remove("flip");
+          firstCard = null;
+          secondCard = null;
+          lock = false;
+        }, 1000);
+      }
+    }
+
+    function checkWin() {
+      const flipped = document.querySelectorAll(".card.flip");
+      if (flipped.length === currentPairs * 2) {
+        clearInterval(timerInterval);
+        setTimeout(() => {
+          const elapsed = Math.floor((Date.now() - startTime) / 1000);
+          const minutos = Math.floor(elapsed / 60);
+          const segundos = elapsed % 60;
+          const textoTempo = minutos
+            ? `${minutos}m ${segundos}s`
+            : `${segundos}s`;
+
+          board.style.display = "none";
+          summary.style.display = "block";
+          summary.querySelector("h2").textContent =
+            `Parabéns! Você completou em ${textoTempo}!`;
+
+          summary.querySelector(".stars").style.display = "block";
+        }, 500);
+      }
+    }
+
+    function startGame() {
+      tempoLimiteAtivado = document.getElementById("toggle-tempo").checked;
+
+      board.innerHTML = "";
+      board.style.display = "grid";
+      summary.style.display = "none";
+      document.querySelectorAll(".aviso-tempo").forEach(el => el.remove());
+
+      const selectedImages = allImages.slice(0, currentPairs);
+      const animalImages = shuffle([...selectedImages, ...selectedImages]);
+
+      animalImages.forEach(img => {
+        const card = createCard(img);
+        board.appendChild(card);
+      });
+
+      firstCard = null;
+      secondCard = null;
+      lock = false;
+
+      document.getElementById("tempo-restante").textContent = `${tempoTotal}s`;
+      iniciarCronometro();
+    }
+
+    function iniciarCronometro() {
+      clearInterval(timerInterval);
+      startTime = Date.now();
+
+      const macas = document.querySelectorAll(".maca");
+      macas.forEach(m => m.classList.remove("comida"));
+
+      const segundosPorMaca = tempoTotal / macas.length;
+
+      timerInterval = setInterval(() => {
+        const elapsed = Math.floor((Date.now() - startTime) / 1000);
+
+        macas.forEach((maca, idx) => {
+          if (elapsed >= (idx + 1) * segundosPorMaca) {
+            maca.classList.add("comida");
+          }
+        });
+
+        const tempoRestante = Math.max(tempoTotal - elapsed, 0);
+        document.getElementById("tempo-restante").textContent = `${tempoRestante}s`;
+
+        if (elapsed >= tempoTotal) {
+          clearInterval(timerInterval);
+          if (tempoLimiteAtivado) {
+            fimDeTempo();
+          } else {
+            const aviso = document.createElement("div");
+            aviso.classList.add("aviso-tempo");
+            aviso.textContent = "⏰ Tempo sugerido esgotado, mas você pode continuar jogando!";
+            document.body.appendChild(aviso);
+          }
+        }
+      }, 1000);
+    }
+
+    function fimDeTempo() {
+      board.style.display = "none";
+      summary.style.display = "block";
+      summary.querySelector("h2").textContent = "⏰ Tempo esgotado!";
+      summary.querySelector(".stars").style.display = "none";
+    }
+
+    setDifficulty(6);
+  </script>
+</body>
+
+</html>
